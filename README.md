@@ -1,6 +1,6 @@
 # Pomodoro Tools
 
-This repository contains two Swift-based menu bar Pomodoro utility applications for macOS.
+This repository contains Swift-based menu bar utility applications for macOS.
 
 ## Applications
 
@@ -15,6 +15,12 @@ This repository contains two Swift-based menu bar Pomodoro utility applications 
    - Displays duration history natively as decimal hours (`1.5` instead of `01:30`).
    - Supports copying isolated Focus times or Full times directly to the clipboard.
    - Built natively with the **iOS 26 / macOS 15 Liquid Glass** design framework for advanced translucency.
+
+3. **MenuBar Notes (`menubar_notes.swift`)**
+   - A persistent menu bar notepad without timer or pomodoro features.
+   - Automatically displays the first line of your note directly in the macOS menu bar.
+   - Saves content persistently in `UserDefaults`.
+   - Features a translucent liquid glass popover panel.
 
 ---
 
@@ -65,3 +71,26 @@ nohup ./stopwatch_pomodoro > /dev/null 2>&1 &
 ```
 
 *Note: Since this is a compiled binary, you can move `stopwatch_pomodoro` anywhere on your system (e.g., `/usr/local/bin`) to run it from any folder.*
+
+---
+
+### 3. MenuBar Notes
+
+#### Compilation
+Compile the Swift source file into a binary executable:
+```bash
+swiftc -O menubar_notes.swift -o menubar_notes
+```
+*(If compiling inside a sandboxed terminal environment, redirect the module cache to prevent permission issues)*:
+```bash
+swiftc -O menubar_notes.swift -module-cache-path ./module_cache -Xcc -fmodules-cache-path=./module_cache -o menubar_notes
+```
+
+#### Run in Background
+To kill any running instances and launch it cleanly in the background:
+```bash
+pkill -f "menubar_notes"
+nohup ./menubar_notes > /dev/null 2>&1 &
+```
+
+*Note: Since this is a compiled binary, you can move `menubar_notes` anywhere on your system (e.g., `/usr/local/bin`) to run it from any folder.*
