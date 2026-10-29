@@ -1,6 +1,19 @@
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# Swift build / module cache
+module_cache/
+*.dSYM/
+
+# Binaries
 /stopwatch_pomodoro
 /smart_pomodoro
 /menubar_notes
-stopwatch_pomodoro.log
-smart_pomodoro.log
-menubar_notes.log
+bin/*
+!bin/.gitkeep
+tools/**/menubar_notes
+tools/**/smart_pomodoro
+tools/**/stopwatch_pomodoro

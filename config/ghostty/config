@@ -1,0 +1,9 @@
+keybind = global:cmd+grave_accent=toggle_quick_terminal
+quick-terminal-space-behavior = move
+background-opacity = 0.8
+quick-terminal-position = bottom
+quick-terminal-size = 50%
+keybind = cmd+t=new_tab
+keybind = cmd+ctrl+k=text:cd ~/Git/knowledge\r
+keybind = cmd+ctrl+g=text:cd ~/Git\r
+keybind = cmd+d=new_split:right
