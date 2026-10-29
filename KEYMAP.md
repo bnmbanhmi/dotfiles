@@ -28,10 +28,10 @@ Cửa sổ web mini trượt từ cạnh phải màn hình, quản lý qua `conf
 | Shortcut | Action | Description |
 | :--- | :--- | :--- |
 | `Ctrl + Option + B` | **Bật / Tắt Slidepad** | Toggle hiển thị mini-browser (B = Browser) |
-| `Ctrl + Option + Left` | **Sang mép Trái** ⬅️ | Chuyển Pad sang mép trái màn hình khi nội dung chính ở bên phải |
-| `Ctrl + Option + Right` | **Sang mép Phải** ➡️ | Chuyển Pad về mép phải màn hình (vị trí mặc định) |
-| `Ctrl + Option + Up` | **Neo nửa Trên** ⬆️ | Neo Pad ở nửa trên màn hình (bấm lần nữa để mở rộng toàn chiều cao) |
-| `Ctrl + Option + Down` | **Neo nửa Dưới** ⬇️ | Neo Pad ở nửa dưới màn hình (bấm lần nữa để mở rộng toàn chiều cao) |
+| `Ctrl + Option + Left` | **Cột dọc mép Trái** ⬅️ | Đưa Pad sang mép trái màn hình (giữ tỉ lệ 640px, cao 100%) |
+| `Ctrl + Option + Right` | **Cột dọc mép Phải** ➡️ | Đưa Pad về mép phải màn hình (giữ tỉ lệ 640px, cao 100%) |
+| `Ctrl + Option + Up` | **Chiếm 1/2 Trên** ⬆️ | Đưa Pad chiếm trọn 1/2 nửa trên màn hình (rộng 100%, cao 50%) |
+| `Ctrl + Option + Down` | **Chiếm 1/2 Dưới** ⬇️ | Đưa Pad chiếm trọn 1/2 nửa dưới màn hình (rộng 100%, cao 50%) |
 | `Ctrl + Option + T` | **Tab mới** | Mở tab Google mới và focus ô tìm kiếm |
 | `Ctrl + Option + W` | **Đóng Tab** | Đóng tab web hiện tại |
 | `Ctrl + Option + D` | **Ghim / Bỏ ghim Tab** | Star / Unstar tab đưa lên đầu danh sách |
