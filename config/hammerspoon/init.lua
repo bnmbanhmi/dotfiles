@@ -2,6 +2,26 @@
 -- SLIDEPAD CLONE PRO (SHORTCUT-ONLY + DYNAMIC TABS + STARRED PINNING)
 -- ============================================================================
 
+-- Bật IPC CLI (lệnh `hs`) và AppleScript để tiện điều khiển từ terminal
+require("hs.ipc")
+hs.allowAppleScript(true)
+
+-- Tự động reload khi cấu hình init.lua thay đổi
+local function reloadConfig(files)
+    local doReload = false
+    for _, file in ipairs(files) do
+        if file:sub(-4) == ".lua" then
+            doReload = true
+            break
+        end
+    end
+    if doReload then
+        hs.reload()
+    end
+end
+local configWatcher = hs.pathwatcher.new(os.getenv("HOME") .. "/Git/dotfiles/config/hammerspoon", reloadConfig):start()
+local homeConfigWatcher = hs.pathwatcher.new(os.getenv("HOME") .. "/.hammerspoon", reloadConfig):start()
+
 local slideWidth = 640
 local sidebarWidth = 54
 local topbarHeight = 40
@@ -23,8 +43,96 @@ if not savedTabs or #savedTabs == 0 then
 end
 
 local tabs = {} -- Chứa { url, starred, wv, loading }
+local addNewTab = nil -- Khai báo trước hàm addNewTab để các callback có thể gọi
 local uiController = hs.webview.usercontent.new("slidepadUI")
 local uiWebview = nil
+
+-- Controller quản lý nội dung Webview trong các Tab (Bắt link mở tab mới)
+local tabContentController = hs.webview.usercontent.new("slidepadTabContent")
+
+local tabContentScript = [[
+(function() {
+    // 1. Bắt click vào link có target="_blank", target="_new" hoặc giữ phím Cmd/Ctrl/chuột giữa
+    document.addEventListener('click', function(e) {
+        let el = e.target;
+        while (el && el.tagName !== 'A') {
+            el = el.parentElement;
+        }
+        if (!el || !el.href) return;
+
+        const target = el.getAttribute('target') || el.target;
+        const isBlank = target === '_blank' || target === '_new';
+        const isModifier = e.metaKey || e.ctrlKey || e.button === 1;
+
+        if ((isBlank || isModifier) && el.href.startsWith('http')) {
+            e.preventDefault();
+            e.stopPropagation();
+            if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.slidepadTabContent) {
+                window.webkit.messageHandlers.slidepadTabContent.postMessage({
+                    action: "openNewTab",
+                    url: el.href
+                });
+            }
+        }
+    }, true);
+
+    // 2. Bắt chuột giữa (auxclick)
+    document.addEventListener('auxclick', function(e) {
+        if (e.button === 1) {
+            let el = e.target;
+            while (el && el.tagName !== 'A') {
+                el = el.parentElement;
+            }
+            if (!el || !el.href) return;
+            if (el.href.startsWith('http')) {
+                e.preventDefault();
+                e.stopPropagation();
+                if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.slidepadTabContent) {
+                    window.webkit.messageHandlers.slidepadTabContent.postMessage({
+                        action: "openNewTab",
+                        url: el.href
+                    });
+                }
+            }
+        }
+    }, true);
+
+    // 3. Bắt window.open() từ JavaScript
+    const _origOpen = window.open;
+    window.open = function(url, target, features) {
+        if (url && typeof url === 'string') {
+            try {
+                const absUrl = new URL(url, window.location.href).href;
+                if (absUrl.startsWith('http://') || absUrl.startsWith('https://')) {
+                    if (window.webkit && window.webkit.messageHandlers && window.webkit.messageHandlers.slidepadTabContent) {
+                        window.webkit.messageHandlers.slidepadTabContent.postMessage({
+                            action: "openNewTab",
+                            url: absUrl
+                        });
+                    }
+                    return null;
+                }
+            } catch(e) {}
+        }
+        return _origOpen ? _origOpen.apply(this, arguments) : null;
+    };
+})();
+]]
+
+tabContentController:injectScript({
+    source = tabContentScript,
+    mainFrame = false,
+    injectionTime = "documentStart"
+})
+
+tabContentController:setCallback(function(msg)
+    local data = msg.body
+    if data and data.action == "openNewTab" and data.url then
+        if addNewTab then
+            addNewTab(data.url, false)
+        end
+    end
+end)
 
 -- Hàm lưu trạng thái các Tab vào ổ cứng để không bị mất khi Reload/Tắt máy
 local function persistTabs()
@@ -116,14 +224,31 @@ local function createWebviewForTab(tabObj)
     local wv = hs.webview.new(hs.geometry.rect(s.x + s.w - slideWidth, s.y + topbarHeight, slideWidth - sidebarWidth, s.h - topbarHeight), {
         developerExtrasEnabled = true,
         datastore = defaultStore
-    })
+    }, tabContentController)
     wv:behavior(windowMask)
     wv:level(hs.drawing.windowLevels.floating + 1)
     wv:allowTextEntry(true)
-    wv:allowNewWindows(false)
+    wv:allowNewWindows(true)
     wv:allowGestures(true)
     wv:windowStyle({"borderless", "utility", "nonactivating"})
     wv:userAgent(userAgent)
+
+    -- Bắt sự kiện newWindow cấp hệ thống (dự phòng cho link native)
+    wv:policyCallback(function(action, newView, navAction)
+        if action == "newWindow" then
+            local targetUrl = nil
+            if navAction and navAction.request and navAction.request.URL then
+                targetUrl = navAction.request.URL
+            end
+            if targetUrl and targetUrl ~= "" and targetUrl ~= "about:blank" then
+                if addNewTab then
+                    addNewTab(targetUrl, false)
+                end
+            end
+            return false -- Chặn mở cửa sổ rời của hệ thống
+        end
+        return true
+    end)
 
     wv:navigationCallback(function(action, webviewObj)
         if action == "didStartProvisionalNavigation" or action == "didFinishNavigation" or action == "didFailNavigation" then
@@ -137,9 +262,11 @@ local function createWebviewForTab(tabObj)
 end
 
 -- 5. Các hàm thao tác Tab (Thêm mới, Đóng, Gắn sao đưa lên đầu)
-local function addNewTab(url, starred)
+addNewTab = function(url, starred)
+    local isDefault = (url == nil or url == "" or url == "https://www.google.com")
+    local targetUrl = (not isDefault and url) or "https://www.google.com"
     local newTab = {
-        url = url or "https://www.google.com",
+        url = targetUrl,
         starred = starred or false
     }
     createWebviewForTab(newTab)
@@ -147,8 +274,11 @@ local function addNewTab(url, starred)
     activeTabIndex = #tabs
     persistTabs()
     syncLayout(true)
-    -- Đưa con trỏ chuột vào thẳng thanh địa chỉ để gõ web mới luôn
-    uiWebview:evaluateJavaScript("setTimeout(() => { const el = document.getElementById('url-bar'); el.focus(); el.select(); }, 80);")
+
+    -- Chỉ đưa con trỏ vào thanh địa chỉ nếu là Tab trắng mặc định
+    if isDefault then
+        uiWebview:evaluateJavaScript("setTimeout(() => { const el = document.getElementById('url-bar'); if(el){ el.focus(); el.select(); } }, 80);")
+    end
 end
 
 local function closeTab(index)
