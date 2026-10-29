@@ -24,9 +24,12 @@ Centralized management repository for personal macOS configurations and custom m
 │       └── stopwatch_pomodoro.swift # Count-up Stopwatch timer with lap exports
 │
 ├── bin/                       # Output directory for compiled binaries
+├── KEYMAP.md                  # Complete keyboard shortcuts map
 ├── install.sh                 # 1-click symlink & setup script
 └── README.md
 ```
+
+> 📖 **Tra cứu toàn bộ phím tắt hệ thống tại [KEYMAP.md](KEYMAP.md)**
 
 ---
 

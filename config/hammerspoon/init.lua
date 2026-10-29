@@ -428,8 +428,8 @@ syncLayout(false)
 -- HỆ THỐNG PHÍM TẮT ĐIỀU KHIỂN (SHORTCUT-ONLY)
 -- ============================================================================
 
--- 1. [Ctrl + Option + S]: Bật / Tắt nhanh cửa sổ Slidepad
-hs.hotkey.bind({"ctrl", "alt"}, "S", function()
+-- 1. [Ctrl + Option + B]: Bật / Tắt nhanh cửa sổ Slidepad
+hs.hotkey.bind({"ctrl", "alt"}, "B", function()
     syncLayout(not isShown)
 end)
 
