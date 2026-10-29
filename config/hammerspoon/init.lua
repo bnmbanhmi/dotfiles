@@ -28,9 +28,38 @@ local topbarHeight = 40
 local isShown = false
 local activeTabIndex = 1
 
+local padXMode = hs.settings.get("slidepad_x_mode") or "right" -- "right" hoặc "left"
+local padYMode = hs.settings.get("slidepad_y_mode") or "full"  -- "full", "top", "bottom"
+
 local defaultStore = hs.webview.datastore.default()
 local windowMask = hs.drawing.windowBehaviors.canJoinAllSpaces + hs.drawing.windowBehaviors.fullScreenAuxiliary
 local userAgent = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.4 Safari/605.1.15"
+
+-- Hàm tính toán khung hình (Frame) động cho Slidepad theo vị trí 4 hướng
+local function getPadFrames()
+    local s = hs.mouse.getCurrentScreen():fullFrame()
+    local padW = slideWidth
+    local padH = s.h
+    local padY = s.y
+
+    if padYMode == "top" then
+        padH = math.floor(s.h / 2)
+        padY = s.y
+    elseif padYMode == "bottom" then
+        padH = s.h - math.floor(s.h / 2)
+        padY = s.y + math.floor(s.h / 2)
+    else
+        padH = s.h
+        padY = s.y
+    end
+
+    local padX = (padXMode == "left") and s.x or (s.x + s.w - padW)
+
+    local uiRect = hs.geometry.rect(padX, padY, padW, padH)
+    local tabRect = hs.geometry.rect(padX, padY + topbarHeight, padW - sidebarWidth, padH - topbarHeight)
+
+    return uiRect, tabRect
+end
 
 -- 1. Khôi phục danh sách Tab đã lưu (Hoặc tạo mặc định nếu chạy lần đầu)
 local savedTabs = hs.settings.get("slidepad_saved_tabs")
@@ -181,7 +210,9 @@ local function refreshUI()
         url = currentUrl,
         loading = isLoading,
         starred = isStarred,
-        tabs = tabsPayload
+        tabs = tabsPayload,
+        xMode = padXMode,
+        yMode = padYMode
     })
 
     uiWebview:evaluateJavaScript(string.format("window.renderState(%s);", stateJson))
@@ -189,16 +220,16 @@ end
 
 -- 3. Hàm sắp xếp và hiển thị cửa sổ Webview
 local function syncLayout(show)
-    local s = hs.mouse.getCurrentScreen():fullFrame()
     if show then
+        local uiRect, tabRect = getPadFrames()
         uiWebview:show()
-        uiWebview:frame(hs.geometry.rect(s.x + s.w - slideWidth, s.y, slideWidth, s.h))
+        uiWebview:frame(uiRect)
         uiWebview:bringToFront(true)
 
         for i, t in ipairs(tabs) do
             if i == activeTabIndex then
                 t.wv:show()
-                t.wv:frame(hs.geometry.rect(s.x + s.w - slideWidth, s.y + topbarHeight, slideWidth - sidebarWidth, s.h - topbarHeight))
+                t.wv:frame(tabRect)
                 t.wv:bringToFront(true)
                 local win = t.wv:hswindow()
                 if win then win:focus() end
@@ -220,8 +251,8 @@ end
 
 -- 4. Hàm khởi tạo một Webview cho Tab
 local function createWebviewForTab(tabObj)
-    local s = hs.screen.mainScreen():fullFrame()
-    local wv = hs.webview.new(hs.geometry.rect(s.x + s.w - slideWidth, s.y + topbarHeight, slideWidth - sidebarWidth, s.h - topbarHeight), {
+    local _, tabRect = getPadFrames()
+    local wv = hs.webview.new(tabRect, {
         developerExtrasEnabled = true,
         datastore = defaultStore
     }, tabContentController)
@@ -352,8 +383,8 @@ for _, item in ipairs(savedTabs) do
 end
 
 -- 6. Giao diện Thanh Địa chỉ + Cột Sidebar động
-local sFrame = hs.screen.mainScreen():fullFrame()
-uiWebview = hs.webview.new(hs.geometry.rect(sFrame.x + sFrame.w - slideWidth, sFrame.y, slideWidth, sFrame.h), {
+local uiRect, _ = getPadFrames()
+uiWebview = hs.webview.new(uiRect, {
     developerExtrasEnabled = false
 }, uiController)
 uiWebview:behavior(windowMask)
@@ -368,7 +399,11 @@ local uiHtml = string.format([[
 <meta charset="utf-8">
 <style>
     * { box-sizing: border-box; user-select: none; font-family: -apple-system, BlinkMacSystemFont, sans-serif; }
-    body { margin: 0; padding: 0; background: #18181b; color: #fff; overflow: hidden; height: 100vh; display: flex; flex-direction: column; border-left: 1px solid #2e2e36; }
+    body { margin: 0; padding: 0; background: #18181b; color: #fff; overflow: hidden; height: 100vh; display: flex; flex-direction: column; }
+    body.dock-right { border-left: 1px solid #2e2e36; border-right: none; }
+    body.dock-left { border-right: 1px solid #2e2e36; border-left: none; }
+    body.dock-top { border-bottom: 1px solid #2e2e36; }
+    body.dock-bottom { border-top: 1px solid #2e2e36; }
     
     /* Thanh địa chỉ phía trên */
     .topbar { height: %dpx; display: flex; align-items: center; padding: 0 8px; gap: 5px; background: #202026; border-bottom: 1px solid #2e2e36; position: relative; }
@@ -429,6 +464,7 @@ local uiHtml = string.format([[
         }
 
         window.renderState = function(state) {
+            document.body.className = (state.xMode === 'left' ? 'dock-left' : 'dock-right') + ' dock-' + (state.yMode || 'full');
             const urlBar = document.getElementById('url-bar');
             if (document.activeElement !== urlBar && state.url) {
                 urlBar.value = state.url;
@@ -591,3 +627,49 @@ for i = 1, 9 do
         end
     end)
 end
+
+-- ============================================================================
+-- ĐIỀU HƯỚNG VỊ TRÍ SLIDEPAD (4 HƯỚNG)
+-- ============================================================================
+
+-- 6. [Ctrl + Option + Left]: Đưa Slidepad sang mép Trái màn hình
+hs.hotkey.bind({"ctrl", "alt"}, "Left", function()
+    padXMode = "left"
+    hs.settings.set("slidepad_x_mode", "left")
+    syncLayout(true)
+    hs.alert.show("Slidepad: Trái ⬅️", 0.6)
+end)
+
+-- 7. [Ctrl + Option + Right]: Đưa Slidepad sang mép Phải màn hình (Mặc định)
+hs.hotkey.bind({"ctrl", "alt"}, "Right", function()
+    padXMode = "right"
+    hs.settings.set("slidepad_x_mode", "right")
+    syncLayout(true)
+    hs.alert.show("Slidepad: Phải ➡️", 0.6)
+end)
+
+-- 8. [Ctrl + Option + Up]: Neo nửa Trên (bấm lại để mở rộng toàn màn hình)
+hs.hotkey.bind({"ctrl", "alt"}, "Up", function()
+    if padYMode == "top" then
+        padYMode = "full"
+        hs.alert.show("Slidepad: Chiều cao tối đa ↕️", 0.6)
+    else
+        padYMode = "top"
+        hs.alert.show("Slidepad: Nửa Trên ⬆️", 0.6)
+    end
+    hs.settings.set("slidepad_y_mode", padYMode)
+    syncLayout(true)
+end)
+
+-- 9. [Ctrl + Option + Down]: Neo nửa Dưới (bấm lại để mở rộng toàn màn hình)
+hs.hotkey.bind({"ctrl", "alt"}, "Down", function()
+    if padYMode == "bottom" then
+        padYMode = "full"
+        hs.alert.show("Slidepad: Chiều cao tối đa ↕️", 0.6)
+    else
+        padYMode = "bottom"
+        hs.alert.show("Slidepad: Nửa Dưới ⬇️", 0.6)
+    end
+    hs.settings.set("slidepad_y_mode", padYMode)
+    syncLayout(true)
+end)

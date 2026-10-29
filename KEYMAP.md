@@ -28,6 +28,10 @@ Cửa sổ web mini trượt từ cạnh phải màn hình, quản lý qua `conf
 | Shortcut | Action | Description |
 | :--- | :--- | :--- |
 | `Ctrl + Option + B` | **Bật / Tắt Slidepad** | Toggle hiển thị mini-browser (B = Browser) |
+| `Ctrl + Option + Left` | **Sang mép Trái** ⬅️ | Chuyển Pad sang mép trái màn hình khi nội dung chính ở bên phải |
+| `Ctrl + Option + Right` | **Sang mép Phải** ➡️ | Chuyển Pad về mép phải màn hình (vị trí mặc định) |
+| `Ctrl + Option + Up` | **Neo nửa Trên** ⬆️ | Neo Pad ở nửa trên màn hình (bấm lần nữa để mở rộng toàn chiều cao) |
+| `Ctrl + Option + Down` | **Neo nửa Dưới** ⬇️ | Neo Pad ở nửa dưới màn hình (bấm lần nữa để mở rộng toàn chiều cao) |
 | `Ctrl + Option + T` | **Tab mới** | Mở tab Google mới và focus ô tìm kiếm |
 | `Ctrl + Option + W` | **Đóng Tab** | Đóng tab web hiện tại |
 | `Ctrl + Option + D` | **Ghim / Bỏ ghim Tab** | Star / Unstar tab đưa lên đầu danh sách |
