@@ -36,11 +36,11 @@ def format_relative_time(iso_time_str):
         hours = (total_seconds % 86400) // 3600
         minutes = (total_seconds % 3600) // 60
         if days > 0:
-            return f"resets in {days}d {hours}h"
+            return f"{days}d {hours}h"
         elif hours > 0:
-            return f"resets in {hours}h {minutes}m"
+            return f"{hours}h {minutes}m"
         else:
-            return f"resets in {minutes}m"
+            return f"{minutes}m"
     except Exception:
         return ""
 
@@ -174,57 +174,60 @@ def fetch_antigravity():
 
         # 1. Antigravity Gemini
         if gemini_weekly or gemini_5h:
-            used_val = gemini_weekly[0] if gemini_weekly else (gemini_5h[0] if gemini_5h else 0)
-            details = []
+            items = []
             if gemini_weekly:
-                details.append(f"Weekly Limit: {gemini_weekly[0]}% used ({gemini_weekly[1]})")
+                items.append({
+                    "id": "AGY-Gemini-Weekly",
+                    "label": f"Weekly: {gemini_weekly[0]}% ({gemini_weekly[1]})",
+                    "menu_text": f"AGY-Gemini-Weekly: {int(round(gemini_weekly[0]))}%"
+                })
             if gemini_5h:
-                details.append(f"5-Hour Limit: {gemini_5h[0]}% used ({gemini_5h[1]})")
-
-            results.append({
-                "id": "AGY",
-                "short": "AGY",
-                "name": "Antigravity (Gemini)",
-                "menu_text": f"AGY: {int(used_val)}%",
-                "details": details
-            })
+                items.append({
+                    "id": "AGY-Gemini-5h",
+                    "label": f"5h: {gemini_5h[0]}% ({gemini_5h[1]})",
+                    "menu_text": f"AGY-Gemini-5h: {int(round(gemini_5h[0]))}%"
+                })
+            if items:
+                results.append({
+                    "name": "Antigravity (Gemini)",
+                    "items": items
+                })
 
         # 2. Antigravity Claude / 3P
         if claude_weekly or claude_5h:
-            used_val = claude_weekly[0] if claude_weekly else (claude_5h[0] if claude_5h else 0)
-            details = []
+            items = []
             if claude_weekly:
-                details.append(f"Weekly Limit: {claude_weekly[0]}% used ({claude_weekly[1]})")
+                items.append({
+                    "id": "AGY-Claude-Weekly",
+                    "label": f"Weekly: {claude_weekly[0]}% ({claude_weekly[1]})",
+                    "menu_text": f"AGY-Claude-Weekly: {int(round(claude_weekly[0]))}%"
+                })
             if claude_5h:
-                details.append(f"5-Hour Limit: {claude_5h[0]}% used ({claude_5h[1]})")
-
-            results.append({
-                "id": "AGY-Claude",
-                "short": "AGY-Claude",
-                "name": "Antigravity (Claude/GPT)",
-                "menu_text": f"AGY-Claude: {int(used_val)}%",
-                "details": details
-            })
+                items.append({
+                    "id": "AGY-Claude-5h",
+                    "label": f"5h: {claude_5h[0]}% ({claude_5h[1]})",
+                    "menu_text": f"AGY-Claude-5h: {int(round(claude_5h[0]))}%"
+                })
+            if items:
+                results.append({
+                    "name": "Antigravity (Claude/GPT)",
+                    "items": items
+                })
 
         # 3. Antigravity Argon (if exists)
         if argon_weekly:
             results.append({
-                "id": "AGY-Argon",
-                "short": "AGY-Argon",
                 "name": "Antigravity (Argon)",
-                "menu_text": f"AGY-Argon: {int(argon_weekly[0])}%",
-                "details": [f"Weekly Limit: {argon_weekly[0]}% used ({argon_weekly[1]})"]
+                "items": [{
+                    "id": "AGY-Argon-Weekly",
+                    "label": f"Weekly: {argon_weekly[0]}% ({argon_weekly[1]})",
+                    "menu_text": f"AGY-Argon-Weekly: {int(round(argon_weekly[0]))}%"
+                }]
             })
 
         return results
     except Exception as e:
-        return [{
-            "id": "AGY",
-            "short": "AGY",
-            "name": "Antigravity",
-            "menu_text": "AGY: err",
-            "details": [f"Error: {str(e)[:40]}"]
-        }]
+        return []
 
 def refresh_chatgpt_token(auth_data, auth_path):
     tokens = auth_data.get("tokens", {})
@@ -319,34 +322,35 @@ def fetch_chatgpt():
                 return f"{hrs}h {mins}m"
             return f"{mins}m"
 
-        used_val = 0
-        details = [f"Plan: {plan}"]
-
+        items = []
         if prim:
             p_used = prim.get("used_percent", 0)
             p_reset_sec = prim.get("reset_after_seconds", 0)
-            used_val = max(used_val, p_used)
             win_sec = prim.get("limit_window_seconds", 0)
-            label = "Session (5h)" if win_sec <= 18000 else "Primary Window"
-            details.append(f"{label}: {p_used}% used (resets in {format_dur(p_reset_sec)})")
+            dur_str = format_dur(p_reset_sec)
+            tag = "5h" if win_sec <= 18000 else "Primary"
+            items.append({
+                "id": f"ChatGPT-{tag}",
+                "label": f"{tag}: {p_used}% ({dur_str})",
+                "menu_text": f"ChatGPT-{tag}: {int(round(p_used))}%"
+            })
 
         if sec:
             s_used = sec.get("used_percent", 0)
             s_reset_sec = sec.get("reset_after_seconds", 0)
-            used_val = max(used_val, s_used)
-            details.append(f"Weekly Limit: {s_used}% used (resets in {format_dur(s_reset_sec)})")
+            dur_str = format_dur(s_reset_sec)
+            items.append({
+                "id": "ChatGPT-Weekly",
+                "label": f"Weekly: {s_used}% ({dur_str})",
+                "menu_text": f"ChatGPT-Weekly: {int(round(s_used))}%"
+            })
 
-        credits = body.get("credits", {})
-        if credits.get("has_credits") and credits.get("balance") is not None:
-            details.append(f"Credits Balance: {credits.get('balance')}")
-
-        return [{
-            "id": "ChatGPT",
-            "short": "ChatGPT",
-            "name": f"ChatGPT ({plan})",
-            "menu_text": f"ChatGPT: {int(used_val)}%",
-            "details": details
-        }]
+        if items:
+            return [{
+                "name": f"ChatGPT ({plan})",
+                "items": items
+            }]
+        return []
     except Exception:
         return []
 
@@ -384,36 +388,39 @@ def fetch_opencode():
         week_tokens = week_tokens or 0
         week_sessions = week_sessions or 0
 
-        if today_cost > 0:
-            menu_text = f"OpenCode: ${today_cost:.2f}"
-        elif today_tokens > 0:
-            menu_text = f"OpenCode: {today_tokens // 1000}k"
-        else:
-            menu_text = "OpenCode: 0"
+        def fmt_tok(n):
+            if n >= 1_000_000:
+                return f"{n / 1_000_000:.1f}M"
+            if n >= 1_000:
+                return f"{n / 1_000:.1f}k"
+            return str(n)
 
-        details = [
-            f"Today: ${today_cost:.2f} ({today_tokens:,} tokens, {today_sessions} sessions)",
-            f"This Week: ${week_cost:.2f} ({week_tokens:,} tokens, {week_sessions} sessions)",
-            f"All Time: ${total_cost or 0:.2f} ({total_tokens or 0:,} tokens)"
+        items = [
+            {
+                "id": "OpenCode-Today",
+                "label": f"Today: ${today_cost:.2f} ({fmt_tok(today_tokens)} tok)",
+                "menu_text": f"OpenCode-Today: ${today_cost:.2f}"
+            },
+            {
+                "id": "OpenCode-Week",
+                "label": f"Week: ${week_cost:.2f} ({fmt_tok(week_tokens)} tok)",
+                "menu_text": f"OpenCode-Week: ${week_cost:.2f}"
+            },
+            {
+                "id": "OpenCode-All",
+                "label": f"All-Time: {total_tokens or 0:,} tok",
+                "menu_text": f"OpenCode-All: {fmt_tok(total_tokens or 0)}"
+            }
         ]
 
         return [{
-            "id": "OpenCode",
-            "short": "OpenCode",
             "name": "OpenCode",
-            "menu_text": menu_text,
-            "details": details
+            "items": items
         }]
-    except Exception as e:
-        return [{
-            "id": "OpenCode",
-            "short": "OpenCode",
-            "name": "OpenCode",
-            "menu_text": "OpenCode: err",
-            "details": [f"Error: {str(e)[:40]}"]
-        }]
+    except Exception:
+        return []
 
-def fetch_gemini_web(cached_providers=None):
+def fetch_gemini_web(cached_groups=None):
     """
     Extracts usage metrics from active Google Chrome tabs:
     - https://gemini.google.com/usage (Account 0)
@@ -495,29 +502,36 @@ end if
 
     results = []
     old_cache = {}
-    if cached_providers:
-        for p in cached_providers:
-            if p.get("id") in ("Gemini-0", "Gemini-1"):
-                old_cache[p.get("id")] = p
+    if cached_groups:
+        for g in cached_groups:
+            if "Gemini Web" in g.get("name", ""):
+                old_cache[g.get("name")] = g
 
     for idx in ["0", "1"]:
-        pid = f"Gemini-{idx}"
+        gname = f"Gemini Web (Acc {idx})"
         if idx in parsed_accounts:
             acc = parsed_accounts[idx]
-            main_pct = acc["weekly_used"]
-            details = [
-                f"Weekly Limit: {acc['weekly_used']}% used ({acc['weekly_reset']})",
-                f"Current (5h): {acc['current_used']}% used (Resets: {acc['current_reset']})"
+            clean_curr_reset = re.sub(r"^(?:Resets\s+)?(?:at\s+|on\s+)?", "", acc["current_reset"], flags=re.IGNORECASE).strip()
+            clean_week_reset = re.sub(r"^(?:Resets\s+)?(?:at\s+|on\s+)?", "", acc["weekly_reset"], flags=re.IGNORECASE).strip()
+
+            items = [
+                {
+                    "id": f"Gemini-Acc{idx}-Weekly",
+                    "label": f"Weekly: {acc['weekly_used']}% ({clean_week_reset})" if clean_week_reset else f"Weekly: {acc['weekly_used']}%",
+                    "menu_text": f"Gemini-Acc{idx}-Weekly: {acc['weekly_used']}%"
+                },
+                {
+                    "id": f"Gemini-Acc{idx}-5h",
+                    "label": f"5h: {acc['current_used']}% ({clean_curr_reset})" if clean_curr_reset else f"5h: {acc['current_used']}%",
+                    "menu_text": f"Gemini-Acc{idx}-5h: {acc['current_used']}%"
+                }
             ]
             results.append({
-                "id": pid,
-                "short": pid,
-                "name": f"Gemini Web (Acc {idx})",
-                "menu_text": f"{pid}: {main_pct}%",
-                "details": details
+                "name": gname,
+                "items": items
             })
-        elif pid in old_cache:
-            results.append(old_cache[pid])
+        elif gname in old_cache:
+            results.append(old_cache[gname])
 
     return results
 
@@ -532,34 +546,49 @@ def load_existing_stats():
 
 def main():
     old_stats = load_existing_stats()
-    cached_providers = old_stats.get("providers", [])
+    cached_groups = old_stats.get("groups", [])
 
-    providers = []
+    groups = []
     
     # 1. Antigravity (Gemini, Claude/GPT, Argon)
-    providers.extend(fetch_antigravity())
+    groups.extend(fetch_antigravity())
 
     # 2. ChatGPT (Codex account)
-    providers.extend(fetch_chatgpt())
+    groups.extend(fetch_chatgpt())
 
     # 3. Gemini Web (Account 0 and Account 1 from Chrome)
-    providers.extend(fetch_gemini_web(cached_providers))
+    groups.extend(fetch_gemini_web(cached_groups))
 
     # 4. OpenCode
-    providers.extend(fetch_opencode())
+    groups.extend(fetch_opencode())
+
+    # Collect all available item IDs
+    all_item_ids = []
+    for g in groups:
+        for it in g.get("items", []):
+            all_item_ids.append(it["id"])
 
     # Active selection
-    active_id = old_stats.get("active", "AGY")
-    existing_ids = [p["id"] for p in providers]
-    if active_id not in existing_ids and existing_ids:
-        active_id = existing_ids[0]
+    active_id = old_stats.get("active", "AGY-Gemini-5h")
+    if active_id not in all_item_ids:
+        mig_map = {
+            "AGY": "AGY-Gemini-5h",
+            "AGY-Claude": "AGY-Claude-5h",
+            "ChatGPT": "ChatGPT-Primary",
+            "Gemini-0": "Gemini-Acc0-Weekly",
+            "Gemini-1": "Gemini-Acc1-Weekly",
+            "OpenCode": "OpenCode-Today"
+        }
+        active_id = mig_map.get(active_id)
+        if not active_id or active_id not in all_item_ids:
+            active_id = all_item_ids[0] if all_item_ids else "AGY-Gemini-5h"
 
     now_str = datetime.datetime.now().strftime("%H:%M")
     output = {
         "active": active_id,
         "updated_at": int(datetime.datetime.now().timestamp()),
         "updated_text": now_str,
-        "providers": providers
+        "groups": groups
     }
 
     # Write atomic stats.json
@@ -568,7 +597,7 @@ def main():
         json.dump(output, f, indent=2, ensure_ascii=False)
     os.replace(tmp_file, STATS_FILE)
 
-    print(f"Stats updated at {now_str}. Providers loaded: {', '.join(existing_ids)}")
+    print(f"Stats updated at {now_str}. Groups: {len(groups)}, Total metrics: {len(all_item_ids)}")
 
 if __name__ == "__main__":
     main()

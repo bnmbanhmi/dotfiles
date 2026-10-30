@@ -9,12 +9,27 @@ Designed to be lightweight, text-only (no emojis, no bloated dashboards), and in
 ## Design Principles
 
 1. **Text-Only, Monochrome Aesthetics:**
-   - Menu bar title uses simple, clean text tags: `AGY: 47%`, `AGY-Claude: 31%`, `OpenCode: $0.35`, `Gemini: 18/100`.
-   - Zero colorful emojis or noisy widgets.
-2. **Single Active Provider on Menu Bar:**
-   - Only the currently selected (active) provider is displayed directly on the macOS menu bar to preserve screen space.
-   - Clicking the menu bar item opens a clean dropdown list showing all providers with their daily/weekly usage.
-   - Clicking any item in the dropdown instantly switches it to be the active provider on the menu bar.
+   - Menu bar title uses simple, clean text tags: `AGY-Gemini-5h: 44%`, `Gemini-Acc0-Weekly: 17%`, `OpenCode-Today: $0.00`.
+   - Zero colorful emojis, no `[]` brackets, or noisy widgets.
+2. **Granular Limit Selection:**
+   - Instead of coarse providers, each specific limit window (Weekly, 5-Hour, Today, Week, All-Time) can be selected independently to show on the Menu Bar.
+   - The dropdown groups metrics cleanly under native subtle headers:
+     ```text
+     Antigravity (Gemini)
+       ✓ 5h: 44.0% (1h 52m)
+         Weekly: 50.9% (1d 0h)
+     Antigravity (Claude/GPT)
+         5h: 0.0% (4h 59m)
+         Weekly: 31.0% (4d 6h)
+     Gemini Web (Acc 0)
+         5h: 20% (13:44)
+         Weekly: 17% (3 Nov at 19:44)
+     OpenCode
+         Today: $0.00 (0 tok)
+         Week: $0.00 (0 tok)
+         All-Time: 8.6M tok
+     ```
+   - Clicking any item in the dropdown instantly switches it to be the active metric on the Menu Bar.
 3. **Decoupled Architecture:**
    - **Backend (`fetcher.py`):** Runs periodically in the background to collect metrics from local databases, OAuth endpoints, or browser cookies, and caches the result to `stats.json`.
    - **Frontend (`usage_tracker.swift`):** A lightweight native Swift menu bar binary that simply reads `stats.json`, renders the menu bar item, and lets the user pick the active provider.

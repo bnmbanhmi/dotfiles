@@ -1,19 +1,22 @@
 import Cocoa
 import Foundation
 
-struct ProviderItem: Codable {
+struct MetricItem: Codable {
     let id: String
-    let short: String
-    let name: String
+    let label: String
     let menu_text: String
-    let details: [String]
+}
+
+struct MetricGroup: Codable {
+    let name: String
+    let items: [MetricItem]
 }
 
 struct StatsPayload: Codable {
     var active: String
     var updated_at: Int
     var updated_text: String
-    var providers: [ProviderItem]
+    var groups: [MetricGroup]
 }
 
 class UsageTrackerApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
@@ -81,7 +84,7 @@ class UsageTrackerApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
     func rebuildMenu() {
         menu.removeAllItems()
         
-        guard let stats = stats, !stats.providers.isEmpty else {
+        guard let stats = stats, !stats.groups.isEmpty else {
             let emptyItem = NSMenuItem(title: "No usage data (Click Refresh)", action: #selector(refreshClicked), keyEquivalent: "")
             emptyItem.target = self
             menu.addItem(emptyItem)
@@ -91,31 +94,47 @@ class UsageTrackerApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         }
 
         // 1. Update Menu Bar Status Item Button
-        let activeProvider = stats.providers.first(where: { $0.id == stats.active }) ?? stats.providers[0]
-        if let button = statusItem.button {
-            button.title = activeProvider.menu_text
+        var activeItem: MetricItem? = nil
+        for group in stats.groups {
+            if let found = group.items.first(where: { $0.id == stats.active }) {
+                activeItem = found
+                break
+            }
+        }
+        if activeItem == nil, let firstGroup = stats.groups.first, let firstItem = firstGroup.items.first {
+            activeItem = firstItem
+        }
+        
+        if let button = statusItem.button, let active = activeItem {
+            button.title = active.menu_text
         }
 
-        // 2. Build Provider Selection Section
-        for provider in stats.providers {
-            let isCurrent = (provider.id == stats.active)
+        // 2. Build Groups and Items
+        for group in stats.groups {
+            // Group header (clean bold secondary color header)
+            let headerItem = NSMenuItem(title: group.name, action: nil, keyEquivalent: "")
+            headerItem.isEnabled = false
+            let font = NSFont.boldSystemFont(ofSize: 11)
+            let attr = NSAttributedString(string: group.name, attributes: [
+                .font: font,
+                .foregroundColor: NSColor.secondaryLabelColor
+            ])
+            headerItem.attributedTitle = attr
+            menu.addItem(headerItem)
             
-            // Header item with checkmark
-            let item = NSMenuItem(
-                title: "\(provider.name)  [\(provider.menu_text)]",
-                action: #selector(providerClicked(_:)),
-                keyEquivalent: ""
-            )
-            item.target = self
-            item.representedObject = provider.id
-            item.state = isCurrent ? .on : .off
-            menu.addItem(item)
-            
-            // Detail lines (indented and disabled)
-            for detail in provider.details {
-                let subItem = NSMenuItem(title: "    " + detail, action: nil, keyEquivalent: "")
-                subItem.isEnabled = false
-                menu.addItem(subItem)
+            // Selectable metric items
+            for item in group.items {
+                let isCurrent = (item.id == stats.active)
+                let menuItem = NSMenuItem(
+                    title: item.label,
+                    action: #selector(metricClicked(_:)),
+                    keyEquivalent: ""
+                )
+                menuItem.target = self
+                menuItem.representedObject = item.id
+                menuItem.state = isCurrent ? .on : .off
+                menuItem.indentationLevel = 1
+                menu.addItem(menuItem)
             }
             
             menu.addItem(NSMenuItem.separator())
@@ -138,14 +157,14 @@ class UsageTrackerApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.addItem(quitItem)
     }
 
-    @objc func providerClicked(_ sender: NSMenuItem) {
-        guard let providerId = sender.representedObject as? String else { return }
+    @objc func metricClicked(_ sender: NSMenuItem) {
+        guard let metricId = sender.representedObject as? String else { return }
         guard var currentStats = stats else { return }
         
-        currentStats.active = providerId
+        currentStats.active = metricId
         self.stats = currentStats
         
-        // Save active provider to stats.json
+        // Save active metric to stats.json
         if let encoded = try? JSONEncoder().encode(currentStats) {
             try? encoded.write(to: URL(fileURLWithPath: statsPath))
         }
