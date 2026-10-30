@@ -66,7 +66,52 @@ def get_google_client_credentials():
 
 OPENAI_CLIENT_ID = "app_EMoamEEZ73f0CkXaXp7hrann"
 
-def refresh_antigravity_token(token_data, token_path):
+ACCOUNTS_PATH = os.path.expanduser("~/.gemini/antigravity_accounts.json")
+JETSKI_TOKEN_PATH = os.path.expanduser("~/.gemini/jetski-standalone-oauth-token")
+
+def get_or_harvest_antigravity_accounts():
+    accounts = []
+    if os.path.exists(ACCOUNTS_PATH):
+        try:
+            with open(ACCOUNTS_PATH, "r", encoding="utf-8") as f:
+                data = json.load(f)
+                accounts = data.get("accounts", [])
+        except Exception:
+            accounts = []
+
+    # Check currently active token in jetski
+    if os.path.exists(JETSKI_TOKEN_PATH):
+        try:
+            with open(JETSKI_TOKEN_PATH, "r", encoding="utf-8") as f:
+                cur_data = json.load(f)
+            cur_email = cur_data.get("id_token_email")
+            if cur_email:
+                found = False
+                for acc in accounts:
+                    if acc.get("email") == cur_email:
+                        acc["token_data"] = cur_data
+                        found = True
+                        break
+                if not found:
+                    acc_id = "0" if "bachnhatminh" in cur_email or not accounts else str(len(accounts))
+                    accounts.append({
+                        "id": acc_id,
+                        "email": cur_email,
+                        "token_data": cur_data
+                    })
+                # Save back to ~/.gemini/antigravity_accounts.json
+                try:
+                    with open(ACCOUNTS_PATH, "w", encoding="utf-8") as f:
+                        json.dump({"accounts": accounts}, f, indent=2)
+                    os.chmod(ACCOUNTS_PATH, 0o600)
+                except Exception:
+                    pass
+        except Exception:
+            pass
+
+    return accounts
+
+def refresh_antigravity_token(token_data, token_path=None):
     refresh_token = token_data.get("token", {}).get("refresh_token") or token_data.get("refresh_token")
     if not refresh_token:
         return None
@@ -95,53 +140,78 @@ def refresh_antigravity_token(token_data, token_path):
                     token_data["access_token"] = new_access_token
                 
                 # Save updated token back
-                try:
-                    with open(token_path, "w", encoding="utf-8") as f:
-                        json.dump(token_data, f, indent=2)
-                except Exception:
-                    pass
+                if token_path:
+                    try:
+                        with open(token_path, "w", encoding="utf-8") as f:
+                            json.dump(token_data, f, indent=2)
+                    except Exception:
+                        pass
                 return new_access_token
     except Exception:
         return None
     return None
 
 def fetch_antigravity():
-    token_path = os.path.expanduser("~/.gemini/jetski-standalone-oauth-token")
-    if not os.path.exists(token_path):
+    accounts = get_or_harvest_antigravity_accounts()
+    if not accounts:
         return []
 
-    try:
-        with open(token_path, "r", encoding="utf-8") as f:
-            token_data = json.load(f)
+    results = []
+
+    def call_quota_api(auth_token):
+        req = urllib.request.Request(
+            "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
+            data=b"{}",
+            headers={
+                "Authorization": f"Bearer {auth_token}",
+                "Content-Type": "application/json",
+                "User-Agent": "antigravity/2.24.0 (aidev_client; os_type=darwin; arch=arm64)"
+            }
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            return json.loads(resp.read().decode("utf-8"))
+
+    for acc in accounts:
+        acc_id = acc.get("id", "0")
+        token_data = acc.get("token_data", {})
         token = token_data.get("token", {}).get("access_token") or token_data.get("access_token")
         if not token:
-            return []
-
-        def call_quota_api(auth_token):
-            req = urllib.request.Request(
-                "https://cloudcode-pa.googleapis.com/v1internal:retrieveUserQuotaSummary",
-                data=b"{}",
-                headers={
-                    "Authorization": f"Bearer {auth_token}",
-                    "Content-Type": "application/json",
-                    "User-Agent": "antigravity/2.24.0 (aidev_client; os_type=darwin; arch=arm64)"
-                }
-            )
-            with urllib.request.urlopen(req, timeout=10) as resp:
-                return json.loads(resp.read().decode("utf-8"))
+            continue
 
         try:
             body = call_quota_api(token)
         except urllib.error.HTTPError as he:
             if he.code == 401:
                 # Token expired, refresh it
-                new_token = refresh_antigravity_token(token_data, token_path)
+                new_token = refresh_antigravity_token(token_data)
                 if new_token:
-                    body = call_quota_api(new_token)
+                    # Update saved accounts file
+                    try:
+                        with open(ACCOUNTS_PATH, "w", encoding="utf-8") as f:
+                            json.dump({"accounts": accounts}, f, indent=2)
+                        os.chmod(ACCOUNTS_PATH, 0o600)
+                    except Exception:
+                        pass
+                    # If this is the current active jetski token, update it too
+                    if os.path.exists(JETSKI_TOKEN_PATH):
+                        try:
+                            with open(JETSKI_TOKEN_PATH, "r", encoding="utf-8") as jf:
+                                jd = json.load(jf)
+                            if jd.get("id_token_email") == acc.get("email"):
+                                with open(JETSKI_TOKEN_PATH, "w", encoding="utf-8") as jf:
+                                    json.dump(token_data, jf, indent=2)
+                        except Exception:
+                            pass
+                    try:
+                        body = call_quota_api(new_token)
+                    except Exception:
+                        continue
                 else:
-                    raise he
+                    continue
             else:
-                raise he
+                continue
+        except Exception:
+            continue
 
         gemini_weekly = None
         gemini_5h = None
@@ -170,26 +240,24 @@ def fetch_antigravity():
                     if bucket.get("window") == "weekly":
                         argon_weekly = (used, rel_t)
 
-        results = []
-
         # 1. Antigravity Gemini
         if gemini_weekly or gemini_5h:
             items = []
             if gemini_weekly:
                 items.append({
-                    "id": "AGY-Gemini-Weekly",
+                    "id": f"{acc_id}-AGY-Gemini-Weekly",
                     "label": f"Weekly: {gemini_weekly[0]}% ({gemini_weekly[1]})",
-                    "menu_text": f"AGY-Gemini-Weekly: {int(round(gemini_weekly[0]))}%"
+                    "menu_text": f"{acc_id}-AGY-Gemini-Weekly: {int(round(gemini_weekly[0]))}%"
                 })
             if gemini_5h:
                 items.append({
-                    "id": "AGY-Gemini-5h",
+                    "id": f"{acc_id}-AGY-Gemini-5h",
                     "label": f"5h: {gemini_5h[0]}% ({gemini_5h[1]})",
-                    "menu_text": f"AGY-Gemini-5h: {int(round(gemini_5h[0]))}%"
+                    "menu_text": f"{acc_id}-AGY-Gemini-5h: {int(round(gemini_5h[0]))}%"
                 })
             if items:
                 results.append({
-                    "name": "Antigravity (Gemini)",
+                    "name": f"{acc_id} - Antigravity (Gemini)",
                     "items": items
                 })
 
@@ -198,36 +266,34 @@ def fetch_antigravity():
             items = []
             if claude_weekly:
                 items.append({
-                    "id": "AGY-Claude-Weekly",
+                    "id": f"{acc_id}-AGY-Claude-Weekly",
                     "label": f"Weekly: {claude_weekly[0]}% ({claude_weekly[1]})",
-                    "menu_text": f"AGY-Claude-Weekly: {int(round(claude_weekly[0]))}%"
+                    "menu_text": f"{acc_id}-AGY-Claude-Weekly: {int(round(claude_weekly[0]))}%"
                 })
             if claude_5h:
                 items.append({
-                    "id": "AGY-Claude-5h",
+                    "id": f"{acc_id}-AGY-Claude-5h",
                     "label": f"5h: {claude_5h[0]}% ({claude_5h[1]})",
-                    "menu_text": f"AGY-Claude-5h: {int(round(claude_5h[0]))}%"
+                    "menu_text": f"{acc_id}-AGY-Claude-5h: {int(round(claude_5h[0]))}%"
                 })
             if items:
                 results.append({
-                    "name": "Antigravity (Claude/GPT)",
+                    "name": f"{acc_id} - Antigravity (Claude/GPT)",
                     "items": items
                 })
 
         # 3. Antigravity Argon (if exists)
         if argon_weekly:
             results.append({
-                "name": "Antigravity (Argon)",
+                "name": f"{acc_id} - Antigravity (Argon)",
                 "items": [{
-                    "id": "AGY-Argon-Weekly",
+                    "id": f"{acc_id}-AGY-Argon-Weekly",
                     "label": f"Weekly: {argon_weekly[0]}% ({argon_weekly[1]})",
-                    "menu_text": f"AGY-Argon-Weekly: {int(round(argon_weekly[0]))}%"
+                    "menu_text": f"{acc_id}-AGY-Argon-Weekly: {int(round(argon_weekly[0]))}%"
                 }]
             })
 
-        return results
-    except Exception as e:
-        return []
+    return results
 
 def refresh_chatgpt_token(auth_data, auth_path):
     tokens = auth_data.get("tokens", {})
@@ -505,10 +571,12 @@ end if
     if cached_groups:
         for g in cached_groups:
             if "Gemini Web" in g.get("name", ""):
-                old_cache[g.get("name")] = g
+                for i in ["0", "1", "2", "3"]:
+                    if f"Acc {i}" in g.get("name", "") or g.get("name", "").startswith(f"{i} -"):
+                        old_cache[i] = g
 
     for idx in ["0", "1"]:
-        gname = f"Gemini Web (Acc {idx})"
+        gname = f"{idx} - Gemini Web"
         if idx in parsed_accounts:
             acc = parsed_accounts[idx]
             clean_curr_reset = re.sub(r"^(?:Resets\s+)?(?:at\s+|on\s+)?", "", acc["current_reset"], flags=re.IGNORECASE).strip()
@@ -516,22 +584,35 @@ end if
 
             items = [
                 {
-                    "id": f"Gemini-Acc{idx}-Weekly",
+                    "id": f"{idx}-Gemini-Weekly",
                     "label": f"Weekly: {acc['weekly_used']}% ({clean_week_reset})" if clean_week_reset else f"Weekly: {acc['weekly_used']}%",
-                    "menu_text": f"Gemini-Acc{idx}-Weekly: {acc['weekly_used']}%"
+                    "menu_text": f"{idx}-Gemini-Weekly: {acc['weekly_used']}%"
                 },
                 {
-                    "id": f"Gemini-Acc{idx}-5h",
+                    "id": f"{idx}-Gemini-5h",
                     "label": f"5h: {acc['current_used']}% ({clean_curr_reset})" if clean_curr_reset else f"5h: {acc['current_used']}%",
-                    "menu_text": f"Gemini-Acc{idx}-5h: {acc['current_used']}%"
+                    "menu_text": f"{idx}-Gemini-5h: {acc['current_used']}%"
                 }
             ]
             results.append({
                 "name": gname,
                 "items": items
             })
-        elif gname in old_cache:
-            results.append(old_cache[gname])
+        elif idx in old_cache:
+            cached_g = old_cache[idx]
+            cached_g["name"] = gname
+            for item in cached_g.get("items", []):
+                if "Weekly" in item["id"]:
+                    item["id"] = f"{idx}-Gemini-Weekly"
+                    m = re.search(r"(\d+)%", item.get("label", ""))
+                    pct = m.group(1) if m else "0"
+                    item["menu_text"] = f"{idx}-Gemini-Weekly: {pct}%"
+                elif "5h" in item["id"] or "Current" in item["id"]:
+                    item["id"] = f"{idx}-Gemini-5h"
+                    m = re.search(r"(\d+)%", item.get("label", ""))
+                    pct = m.group(1) if m else "0"
+                    item["menu_text"] = f"{idx}-Gemini-5h: {pct}%"
+            results.append(cached_g)
 
     return results
 
@@ -550,7 +631,7 @@ def main():
 
     groups = []
     
-    # 1. Antigravity (Gemini, Claude/GPT, Argon)
+    # 1. Antigravity (Gemini, Claude/GPT, Argon for each account)
     groups.extend(fetch_antigravity())
 
     # 2. ChatGPT (Codex account)
@@ -569,19 +650,28 @@ def main():
             all_item_ids.append(it["id"])
 
     # Active selection
-    active_id = old_stats.get("active", "AGY-Gemini-5h")
+    active_id = old_stats.get("active", "0-AGY-Gemini-5h")
     if active_id not in all_item_ids:
         mig_map = {
-            "AGY": "AGY-Gemini-5h",
-            "AGY-Claude": "AGY-Claude-5h",
+            "AGY": "0-AGY-Gemini-5h",
+            "AGY-Gemini-5h": "0-AGY-Gemini-5h",
+            "AGY-Gemini-Weekly": "0-AGY-Gemini-Weekly",
+            "AGY-Claude": "0-AGY-Claude-5h",
+            "AGY-Claude-5h": "0-AGY-Claude-5h",
+            "AGY-Claude-Weekly": "0-AGY-Claude-Weekly",
             "ChatGPT": "ChatGPT-Primary",
-            "Gemini-0": "Gemini-Acc0-Weekly",
-            "Gemini-1": "Gemini-Acc1-Weekly",
-            "OpenCode": "OpenCode-Today"
+            "Gemini-0": "0-Gemini-Weekly",
+            "Gemini-Acc0-Weekly": "0-Gemini-Weekly",
+            "Gemini-Acc0-5h": "0-Gemini-5h",
+            "Gemini-1": "1-Gemini-Weekly",
+            "Gemini-Acc1-Weekly": "1-Gemini-Weekly",
+            "Gemini-Acc1-5h": "1-Gemini-5h",
+            "OpenCode": "OpenCode-Today",
+            "OpenCode-Today": "OpenCode-Today"
         }
         active_id = mig_map.get(active_id)
         if not active_id or active_id not in all_item_ids:
-            active_id = all_item_ids[0] if all_item_ids else "AGY-Gemini-5h"
+            active_id = "0-AGY-Gemini-5h" if "0-AGY-Gemini-5h" in all_item_ids else (all_item_ids[0] if all_item_ids else "0-AGY-Gemini-5h")
 
     now_str = datetime.datetime.now().strftime("%H:%M")
     output = {
