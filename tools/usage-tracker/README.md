@@ -9,14 +9,20 @@ Designed to be lightweight, text-only (no emojis, no bloated dashboards), and in
 ## Design Principles
 
 1. **Text-Only, Monochrome Aesthetics & Granular Hierarchy:**
-   - Menu bar title uses a clear, structured hierarchy: `[acc]-[platform]-[model]-[type]`
-     - `0-AGY-Gemini-5h: 53%` (Account 0, Antigravity, Gemini pool, 5-hour limit)
-     - `0-AGY-Gemini-Weekly: 53%` (Account 0, Antigravity, Gemini pool, weekly limit)
-     - `0-AGY-Claude-Weekly: 31%` (Account 0, Antigravity, Claude/GPT pool, weekly limit)
-     - `0-Gemini-Weekly: 17%` (Account 0, Gemini Web, weekly limit)
-     - `1-Gemini-Weekly: 11%` (Account 1, Gemini Web, weekly limit)
-     - `OpenCode-Today: $0.00`
-   - Zero colorful emojis, no `[]` brackets, or noisy widgets.
+   - Menu bar title uses a compact, structured hierarchy: `[acc]-[platform]-[model]-[type]`
+     - `0-AGY-G-W: 56%` (Account 0, Antigravity, Gemini pool, Weekly limit)
+     - `0-AGY-G-5h: 58%` (Account 0, Antigravity, Gemini pool, 5-hour limit)
+     - `0-AGY-C-W: 31%` (Account 0, Antigravity, Claude/GPT pool, Weekly limit)
+     - `0-AGY-C-5h: 0%` (Account 0, Antigravity, Claude/GPT pool, 5-hour limit)
+     - `0-Gem-W: 17%` (Account 0, Gemini Web, Weekly limit)
+     - `0-Gem-5h: 20%` (Account 0, Gemini Web, 5-hour limit)
+     - `1-Gem-W: 11%` (Account 1, Gemini Web, Weekly limit)
+     - `1-Gem-5h: 0%` (Account 1, Gemini Web, 5-hour limit)
+     - `GPT-P: 0%` (ChatGPT, Primary window)
+     - `OC-Today: $0.00` (OpenCode, Today cost)
+     - `OC-Week: $0.00` (OpenCode, Week cost)
+     - `OC-All: 8.6M` (OpenCode, All-time tokens)
+   - Zero colorful emojis, no `[]` brackets, or noisy widgets. Length is capped at 10–15 characters to preserve precious menu bar space on MacBook notch displays.
 2. **Auto-Harvesting Multi-Account:**
    - **Antigravity:** Automatically registers the active account (`~/.gemini/antigravity_accounts.json`). When switching accounts in Antigravity IDE, newly detected accounts are automatically harvested and preserved so all accounts are monitored concurrently without re-logging in.
    - **Gemini Web:** Maps directly to Account 0 and Account 1 from Google Chrome (`/usage` and `/u/1/usage`).

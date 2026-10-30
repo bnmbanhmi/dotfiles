@@ -245,15 +245,15 @@ def fetch_antigravity():
             items = []
             if gemini_weekly:
                 items.append({
-                    "id": f"{acc_id}-AGY-Gemini-Weekly",
+                    "id": f"{acc_id}-AGY-G-W",
                     "label": f"Weekly: {gemini_weekly[0]}% ({gemini_weekly[1]})",
-                    "menu_text": f"{acc_id}-AGY-Gemini-Weekly: {int(round(gemini_weekly[0]))}%"
+                    "menu_text": f"{acc_id}-AGY-G-W: {int(round(gemini_weekly[0]))}%"
                 })
             if gemini_5h:
                 items.append({
-                    "id": f"{acc_id}-AGY-Gemini-5h",
+                    "id": f"{acc_id}-AGY-G-5h",
                     "label": f"5h: {gemini_5h[0]}% ({gemini_5h[1]})",
-                    "menu_text": f"{acc_id}-AGY-Gemini-5h: {int(round(gemini_5h[0]))}%"
+                    "menu_text": f"{acc_id}-AGY-G-5h: {int(round(gemini_5h[0]))}%"
                 })
             if items:
                 results.append({
@@ -266,15 +266,15 @@ def fetch_antigravity():
             items = []
             if claude_weekly:
                 items.append({
-                    "id": f"{acc_id}-AGY-Claude-Weekly",
+                    "id": f"{acc_id}-AGY-C-W",
                     "label": f"Weekly: {claude_weekly[0]}% ({claude_weekly[1]})",
-                    "menu_text": f"{acc_id}-AGY-Claude-Weekly: {int(round(claude_weekly[0]))}%"
+                    "menu_text": f"{acc_id}-AGY-C-W: {int(round(claude_weekly[0]))}%"
                 })
             if claude_5h:
                 items.append({
-                    "id": f"{acc_id}-AGY-Claude-5h",
+                    "id": f"{acc_id}-AGY-C-5h",
                     "label": f"5h: {claude_5h[0]}% ({claude_5h[1]})",
-                    "menu_text": f"{acc_id}-AGY-Claude-5h: {int(round(claude_5h[0]))}%"
+                    "menu_text": f"{acc_id}-AGY-C-5h: {int(round(claude_5h[0]))}%"
                 })
             if items:
                 results.append({
@@ -287,9 +287,9 @@ def fetch_antigravity():
             results.append({
                 "name": f"{acc_id} - Antigravity (Argon)",
                 "items": [{
-                    "id": f"{acc_id}-AGY-Argon-Weekly",
+                    "id": f"{acc_id}-AGY-A-W",
                     "label": f"Weekly: {argon_weekly[0]}% ({argon_weekly[1]})",
-                    "menu_text": f"{acc_id}-AGY-Argon-Weekly: {int(round(argon_weekly[0]))}%"
+                    "menu_text": f"{acc_id}-AGY-A-W: {int(round(argon_weekly[0]))}%"
                 }]
             })
 
@@ -394,11 +394,12 @@ def fetch_chatgpt():
             p_reset_sec = prim.get("reset_after_seconds", 0)
             win_sec = prim.get("limit_window_seconds", 0)
             dur_str = format_dur(p_reset_sec)
-            tag = "5h" if win_sec <= 18000 else "Primary"
+            tag = "5h" if win_sec <= 18000 else "P"
+            lbl = "5h" if win_sec <= 18000 else "Primary"
             items.append({
-                "id": f"ChatGPT-{tag}",
-                "label": f"{tag}: {p_used}% ({dur_str})",
-                "menu_text": f"ChatGPT-{tag}: {int(round(p_used))}%"
+                "id": f"GPT-{tag}",
+                "label": f"{lbl}: {p_used}% ({dur_str})",
+                "menu_text": f"GPT-{tag}: {int(round(p_used))}%"
             })
 
         if sec:
@@ -406,9 +407,9 @@ def fetch_chatgpt():
             s_reset_sec = sec.get("reset_after_seconds", 0)
             dur_str = format_dur(s_reset_sec)
             items.append({
-                "id": "ChatGPT-Weekly",
+                "id": "GPT-W",
                 "label": f"Weekly: {s_used}% ({dur_str})",
-                "menu_text": f"ChatGPT-Weekly: {int(round(s_used))}%"
+                "menu_text": f"GPT-W: {int(round(s_used))}%"
             })
 
         if items:
@@ -463,19 +464,19 @@ def fetch_opencode():
 
         items = [
             {
-                "id": "OpenCode-Today",
+                "id": "OC-Today",
                 "label": f"Today: ${today_cost:.2f} ({fmt_tok(today_tokens)} tok)",
-                "menu_text": f"OpenCode-Today: ${today_cost:.2f}"
+                "menu_text": f"OC-Today: ${today_cost:.2f}"
             },
             {
-                "id": "OpenCode-Week",
+                "id": "OC-Week",
                 "label": f"Week: ${week_cost:.2f} ({fmt_tok(week_tokens)} tok)",
-                "menu_text": f"OpenCode-Week: ${week_cost:.2f}"
+                "menu_text": f"OC-Week: ${week_cost:.2f}"
             },
             {
-                "id": "OpenCode-All",
+                "id": "OC-All",
                 "label": f"All-Time: {total_tokens or 0:,} tok",
-                "menu_text": f"OpenCode-All: {fmt_tok(total_tokens or 0)}"
+                "menu_text": f"OC-All: {fmt_tok(total_tokens or 0)}"
             }
         ]
 
@@ -584,14 +585,14 @@ end if
 
             items = [
                 {
-                    "id": f"{idx}-Gemini-Weekly",
+                    "id": f"{idx}-Gem-W",
                     "label": f"Weekly: {acc['weekly_used']}% ({clean_week_reset})" if clean_week_reset else f"Weekly: {acc['weekly_used']}%",
-                    "menu_text": f"{idx}-Gemini-Weekly: {acc['weekly_used']}%"
+                    "menu_text": f"{idx}-Gem-W: {acc['weekly_used']}%"
                 },
                 {
-                    "id": f"{idx}-Gemini-5h",
+                    "id": f"{idx}-Gem-5h",
                     "label": f"5h: {acc['current_used']}% ({clean_curr_reset})" if clean_curr_reset else f"5h: {acc['current_used']}%",
-                    "menu_text": f"{idx}-Gemini-5h: {acc['current_used']}%"
+                    "menu_text": f"{idx}-Gem-5h: {acc['current_used']}%"
                 }
             ]
             results.append({
@@ -602,16 +603,16 @@ end if
             cached_g = old_cache[idx]
             cached_g["name"] = gname
             for item in cached_g.get("items", []):
-                if "Weekly" in item["id"]:
-                    item["id"] = f"{idx}-Gemini-Weekly"
+                if "Weekly" in item["id"] or "-W" in item["id"]:
+                    item["id"] = f"{idx}-Gem-W"
                     m = re.search(r"(\d+)%", item.get("label", ""))
                     pct = m.group(1) if m else "0"
-                    item["menu_text"] = f"{idx}-Gemini-Weekly: {pct}%"
+                    item["menu_text"] = f"{idx}-Gem-W: {pct}%"
                 elif "5h" in item["id"] or "Current" in item["id"]:
-                    item["id"] = f"{idx}-Gemini-5h"
+                    item["id"] = f"{idx}-Gem-5h"
                     m = re.search(r"(\d+)%", item.get("label", ""))
                     pct = m.group(1) if m else "0"
-                    item["menu_text"] = f"{idx}-Gemini-5h: {pct}%"
+                    item["menu_text"] = f"{idx}-Gem-5h: {pct}%"
             results.append(cached_g)
 
     return results
@@ -650,28 +651,41 @@ def main():
             all_item_ids.append(it["id"])
 
     # Active selection
-    active_id = old_stats.get("active", "0-AGY-Gemini-5h")
+    active_id = old_stats.get("active", "0-AGY-G-W")
     if active_id not in all_item_ids:
         mig_map = {
-            "AGY": "0-AGY-Gemini-5h",
-            "AGY-Gemini-5h": "0-AGY-Gemini-5h",
-            "AGY-Gemini-Weekly": "0-AGY-Gemini-Weekly",
-            "AGY-Claude": "0-AGY-Claude-5h",
-            "AGY-Claude-5h": "0-AGY-Claude-5h",
-            "AGY-Claude-Weekly": "0-AGY-Claude-Weekly",
-            "ChatGPT": "ChatGPT-Primary",
-            "Gemini-0": "0-Gemini-Weekly",
-            "Gemini-Acc0-Weekly": "0-Gemini-Weekly",
-            "Gemini-Acc0-5h": "0-Gemini-5h",
-            "Gemini-1": "1-Gemini-Weekly",
-            "Gemini-Acc1-Weekly": "1-Gemini-Weekly",
-            "Gemini-Acc1-5h": "1-Gemini-5h",
-            "OpenCode": "OpenCode-Today",
-            "OpenCode-Today": "OpenCode-Today"
+            "0-AGY-Gemini-Weekly": "0-AGY-G-W",
+            "0-AGY-Gemini-5h": "0-AGY-G-5h",
+            "0-AGY-Claude-Weekly": "0-AGY-C-W",
+            "0-AGY-Claude-5h": "0-AGY-C-5h",
+            "AGY": "0-AGY-G-W",
+            "AGY-Gemini-5h": "0-AGY-G-5h",
+            "AGY-Gemini-Weekly": "0-AGY-G-W",
+            "AGY-Claude": "0-AGY-C-5h",
+            "AGY-Claude-5h": "0-AGY-C-5h",
+            "AGY-Claude-Weekly": "0-AGY-C-W",
+            "ChatGPT": "GPT-P",
+            "ChatGPT-Primary": "GPT-P",
+            "ChatGPT-5h": "GPT-5h",
+            "ChatGPT-Weekly": "GPT-W",
+            "Gemini-0": "0-Gem-W",
+            "0-Gemini-Weekly": "0-Gem-W",
+            "0-Gemini-5h": "0-Gem-5h",
+            "Gemini-Acc0-Weekly": "0-Gem-W",
+            "Gemini-Acc0-5h": "0-Gem-5h",
+            "Gemini-1": "1-Gem-W",
+            "1-Gemini-Weekly": "1-Gem-W",
+            "1-Gemini-5h": "1-Gem-5h",
+            "Gemini-Acc1-Weekly": "1-Gem-W",
+            "Gemini-Acc1-5h": "1-Gem-5h",
+            "OpenCode": "OC-Today",
+            "OpenCode-Today": "OC-Today",
+            "OpenCode-Week": "OC-Week",
+            "OpenCode-All": "OC-All"
         }
         active_id = mig_map.get(active_id)
         if not active_id or active_id not in all_item_ids:
-            active_id = "0-AGY-Gemini-5h" if "0-AGY-Gemini-5h" in all_item_ids else (all_item_ids[0] if all_item_ids else "0-AGY-Gemini-5h")
+            active_id = "0-AGY-G-W" if "0-AGY-G-W" in all_item_ids else (all_item_ids[0] if all_item_ids else "0-AGY-G-W")
 
     now_str = datetime.datetime.now().strftime("%H:%M")
     output = {
