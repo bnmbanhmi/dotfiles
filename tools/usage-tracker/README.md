@@ -65,9 +65,9 @@ tools/usage-tracker/
   - [x] Implement `NSMenu` dropdown with checkmark toggle to switch active provider.
   - [x] Persist active provider selection across restarts.
   - [x] "Refresh" trigger to invoke `fetcher.py`.
-- [ ] **Phase 3: Web Providers (Gemini Web & ChatGPT):**
-  - [ ] Multi-account Gemini Web scraper (`/usage` and `/u/1/usage`).
-  - [ ] ChatGPT usage integration.
-- [ ] **Phase 4: Integration with Dotfiles:**
-  - [ ] Add build and background start to `install.sh`.
-  - [ ] Document shortcuts and usage in `KEYMAP.md`.
+- [x] **Phase 3: Web Providers (Gemini Web & ChatGPT):**
+  - [x] Multi-account Gemini Web scraper (`/usage` and `/u/1/usage` via Google Chrome AppleScript without stealing focus).
+  - [x] ChatGPT usage integration (`chatgpt.com/backend-api/wham/usage` via Codex credentials in `~/.codex/auth.json` with auto OAuth refresh).
+- [x] **Phase 4: Integration with Dotfiles:**
+  - [x] Built binary `bin/usage_tracker` and added `--build` flag to `install.sh`.
+  - [x] Dynamic menu reload on click (`menuWillOpen`).

@@ -73,6 +73,11 @@ class UsageTrackerApp: NSObject, NSApplicationDelegate, NSMenuDelegate {
         self.stats = payload
     }
 
+    func menuWillOpen(_ menu: NSMenu) {
+        loadStats()
+        rebuildMenu()
+    }
+
     func rebuildMenu() {
         menu.removeAllItems()
         
