@@ -282,7 +282,7 @@ def fetch_antigravity():
                     "items": items
                 })
 
-        # 3. Antigravity Argon (if exists)
+        # 3. Antigravity Argon
         if argon_weekly:
             results.append({
                 "name": f"{acc_id} - Antigravity (Argon)",
@@ -290,6 +290,15 @@ def fetch_antigravity():
                     "id": f"{acc_id}-AGY-A-W",
                     "label": f"Weekly: {argon_weekly[0]}% ({argon_weekly[1]})",
                     "menu_text": f"{acc_id}-AGY-A-W: {int(round(argon_weekly[0]))}%"
+                }]
+            })
+        else:
+            results.append({
+                "name": f"{acc_id} - Antigravity (Argon)",
+                "items": [{
+                    "id": f"{acc_id}-AGY-A-W",
+                    "label": "Weekly: N/A (Pro/Ultra only)",
+                    "menu_text": f"{acc_id}-AGY-A-W: N/A"
                 }]
             })
 

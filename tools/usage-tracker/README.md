@@ -14,6 +14,7 @@ Designed to be lightweight, text-only (no emojis, no bloated dashboards), and in
      - `0-AGY-G-5h: 58%` (Account 0, Antigravity, Gemini pool, 5-hour limit)
      - `0-AGY-C-W: 31%` (Account 0, Antigravity, Claude/GPT pool, Weekly limit)
      - `0-AGY-C-5h: 0%` (Account 0, Antigravity, Claude/GPT pool, 5-hour limit)
+     - `0-AGY-A-W: 0%` (Account 0, Antigravity, Gemini 4 Argon, Weekly limit)
      - `0-Gem-W: 17%` (Account 0, Gemini Web, Weekly limit)
      - `0-Gem-5h: 20%` (Account 0, Gemini Web, 5-hour limit)
      - `1-Gem-W: 11%` (Account 1, Gemini Web, Weekly limit)
@@ -34,6 +35,8 @@ Designed to be lightweight, text-only (no emojis, no bloated dashboards), and in
      0 - Antigravity (Claude/GPT)
          Weekly: 31.0% (4d 6h)
          5h: 0.0% (4h 59m)
+     0 - Antigravity (Argon)
+         Weekly: N/A (Pro/Ultra only)
      0 - Gemini Web
          Weekly: 17% (3 Nov at 19:44)
          5h: 20% (13:44)
