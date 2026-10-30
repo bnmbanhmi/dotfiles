@@ -297,8 +297,8 @@ def fetch_antigravity():
                 "name": f"{acc_id} - Antigravity (Argon)",
                 "items": [{
                     "id": f"{acc_id}-AGY-A-W",
-                    "label": "Weekly: N/A (Pro/Ultra only)",
-                    "menu_text": f"{acc_id}-AGY-A-W: N/A"
+                    "label": "Weekly: Shared (Included in Gemini)",
+                    "menu_text": f"{acc_id}-AGY-A-W: Shared"
                 }]
             })
 
