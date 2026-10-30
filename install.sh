@@ -76,6 +76,11 @@ build_tools() {
         swiftc -O "$DOTFILES_DIR/tools/pomodoro/stopwatch_pomodoro.swift" "${cache_args[@]}" -o "$DOTFILES_DIR/bin/stopwatch_pomodoro"
         ln -sf "$DOTFILES_DIR/bin/stopwatch_pomodoro" "$DOTFILES_DIR/stopwatch_pomodoro"
         success "Built: bin/stopwatch_pomodoro"
+
+        info "Building usage_tracker..."
+        swiftc -O "$DOTFILES_DIR/tools/usage-tracker/usage_tracker.swift" "${cache_args[@]}" -o "$DOTFILES_DIR/bin/usage_tracker"
+        ln -sf "$DOTFILES_DIR/bin/usage_tracker" "$DOTFILES_DIR/tools/usage-tracker/usage_tracker"
+        success "Built: bin/usage_tracker"
     else
         warn "swiftc compiler not found, skipping tool compilation."
     fi

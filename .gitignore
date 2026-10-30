@@ -17,3 +17,6 @@ bin/*
 tools/**/menubar_notes
 tools/**/smart_pomodoro
 tools/**/stopwatch_pomodoro
+tools/**/usage_tracker
+tools/**/stats.json
+tools/**/stats.json.tmp
